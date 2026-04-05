@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install -r requirements.txt
 
       - name: Run tests
         run: |
@@ -34,7 +34,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: cmd
         run: |
-          call scripts\build_portable.bat
+          call scripts\build_portable.bat ${{ github.ref_name }}
 
       - name: Generate checksums
         if: startsWith(github.ref, 'refs/tags/')
