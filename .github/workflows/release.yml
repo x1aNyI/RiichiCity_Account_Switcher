@@ -1,0 +1,55 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          python -m pytest -q
+
+      - name: Build portable package
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: cmd
+        run: |
+          call scripts\build_portable.bat
+
+      - name: Generate checksums
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: powershell
+        run: |
+          Get-FileHash dist\MahjongSwitcher-*.zip -Algorithm SHA256 | ForEach-Object {
+            "$($_.Hash)  $($_.Path | Split-Path -Leaf)" | Out-File -FilePath dist\checksums-${{ github.ref_name }}.txt -Append -Encoding utf8
+          }
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
+          files: |
+            dist\MahjongSwitcher-*.zip
+            dist\checksums-*.txt
